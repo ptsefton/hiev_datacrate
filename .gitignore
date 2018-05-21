@@ -107,5 +107,4 @@ venv.bak/
 
 # Pycharm project files
 .idea/
-/test.py
 /uploads/

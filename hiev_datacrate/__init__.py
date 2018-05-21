@@ -169,8 +169,12 @@ class FileList:
 
 class File:
     """ An individual file object """
-    def __init__(self, file_list, orig_path, filename):
-        self.file_list = file_list
+    def __init__(self, filelist, orig_path, filename):
         self.orig_path = orig_path
         self.filename = filename
-        self.file_list.file_append(self)
+        if not isinstance(filelist, FileList):
+            raise ValueError("filelist must be a FileList object")
+        else:
+            self.filelist = filelist
+
+        self.filelist.file_append(self)
