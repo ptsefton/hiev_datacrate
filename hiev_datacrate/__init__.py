@@ -81,19 +81,28 @@ class Catalog:
         """ Add a new graph_elements object """
         self.graph_elements.append(graph_element)
 
+    def context_append(self, key, schema_val):
+        """ Add a new context entry if it doesn't exist """
+        if key in self.context and schema_val == self.context[key]:
+            pass
+        else:
+            self.context[key] = schema_val
+
     def serialize(self):
-        """ Serialize object to string """
-        jsonld_flat = {"@context": self.context,
-                       "@graph_elements": self.graph_elements}
-
-        return json.dumps(jsonld_flat)
-
-    def export(self, path):
-        """ Export to json file at top level of datacrate folder """
+        """ Serialize myself to string """
         graph_serial = []
         for ge in self.graph_elements:
             graph_serial.append(ge.content)
         data = {"@context": self.context, "@graph_elements": graph_serial}
+
+        return json.dumps(data)
+
+    def export(self, path):
+        """ Export myself to a json file at top level of datacrate folder """
+        graph_serial = []
+        for ge in self.graph_elements:
+            graph_serial.append(ge.content)
+        data = {"@context": self.context, "@graph": graph_serial}
 
         with open(os.path.join(path, 'CATALOG.json'), 'w') as jsonfile:
             json.dump(data, jsonfile, indent=4)
@@ -105,27 +114,35 @@ class GraphElement:
         self.content = {}
         self.catalog = catalog  # Parent catalog
         # check for ID uniqueness across catalog
-        if not any(ge['@id'] == gid for ge in self.catalog.graph_elements):
+        if not any(ge.content['@id'] == gid for ge in self.catalog.graph_elements):
             self.gid = gid
             self.content['@id'] = gid
             self.catalog.graph_element_append(self)
         else:
             print('An element in your graph_elements already exists with this ID')
 
-    def add_attribute(self, key, value):
+    def add_attribute(self, key, value, schema_val=None):
         """
         Add a new context pair
         """
         self.content[key] = value
 
-    def add_link(self, key, value):
+        # Add to context if not already existing
+        if schema_val:
+            self.catalog.context_append(key, schema_val)
+
+    def add_link(self, key, value, schema_val=None):
         """
         Add a new single link element
         """
 
         self.content[key] = {"@id": value}
 
-    def add_multilink(self, key, values):
+        # Add to context if not already existing
+        if schema_val:
+            self.catalog.context_append(key, schema_val)
+
+    def add_multilink(self, key, values, schema_val=None):
         """
         Add a new multilink element
         """
@@ -134,6 +151,10 @@ class GraphElement:
             links.append({"@id": value})
 
         self.content[key] = links
+
+        # Add to context if not already existing
+        if schema_val:
+            self.catalog.context_append(key, schema_val)
 
 
 class FileList:
