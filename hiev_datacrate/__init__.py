@@ -11,36 +11,30 @@ TAGFILE_CHARACTER_ENCODING = "UTF-8"
 
 class DataCrate:
     """ A DataCrate Class """
-    def __init__(self, catalog, files, crate_name=None):
+    def __init__(self, catalog, filelist, crate_name=None):
         self.catalog = catalog
-        self.files = files
-        self.crate_name = None
+        self.filelist = filelist
+        self.crate_name = crate_name
         self.crate_path = None
         self.datadir_path = None
         self.bagit_version = BAGIT_VERSION
         self.tagfile_char_encoding = TAGFILE_CHARACTER_ENCODING
 
         # Create the basic structure of a DataCrate
-        if crate_name:
-            if not os.path.isdir(os.path.join(os.getcwd(), crate_name)):
-                self.crate_path = os.path.join(os.getcwd(), crate_name)
+        if self.crate_name:
+            if not os.path.isdir(os.path.join(os.getcwd(), self.crate_name)):
+                self.crate_path = os.path.join(os.getcwd(), self.crate_name)
                 self.datadir_path = os.path.join(self.crate_path, 'data')
                 os.makedirs(self.crate_path)
                 os.makedirs(os.path.join(self.datadir_path))
             else:
                 print('This datacrate already exists')
         else:
-            crate_name = datetime.now().strftime('%Y%m%d%H%M%S')
-            self.crate_path = os.path.join(os.getcwd(), crate_name)
+            self.crate_name = datetime.now().strftime('%Y%m%d%H%M%S')
+            self.crate_path = os.path.join(os.getcwd(), self.crate_name)
             self.datadir_path = os.path.join(self.crate_path, 'data')
             os.makedirs(self.crate_path)
             os.makedirs(self.datadir_path)
-
-    def set_catalog(self, catalog):
-        self.catalog = catalog
-
-    def set_filegroup(self, filegroup):
-        self.filegroup = filegroup
 
     def validate(self):
         if self.catalog is None:
@@ -56,7 +50,7 @@ class DataCrate:
 
     def ingest_files(self):
         """ Copy files into the data folder"""
-        for file in self.filegroup.files:
+        for file in self.filelist.files:
             shutil.copy(file.orig_path, os.path.join(self.crate_path, 'data'))
 
     def generate_manifest(self):
@@ -77,43 +71,46 @@ class Catalog:
     """ A Catalog class """
     def __init__(self):
         self.context = {}
-        self.graph = []
+        self.graph_elements = []
 
     def context_append(self, key, value):
         """ Add a new context pair """
         self.context[key] = value
 
     def graph_element_append(self, graph_element):
-        """ Add a new graph object """
-        self.graph.append(graph_element)
+        """ Add a new graph_elements object """
+        self.graph_elements.append(graph_element)
 
     def serialize(self):
         """ Serialize object to string """
         jsonld_flat = {"@context": self.context,
-                       "@graph": self.graph}
+                       "@graph_elements": self.graph_elements}
 
         return json.dumps(jsonld_flat)
 
     def export(self, path):
         """ Export to json file at top level of datacrate folder """
-        data = {"@context": self.context, "@graph": self.graph}
+        graph_serial = []
+        for ge in self.graph_elements:
+            graph_serial.append(ge.content)
+        data = {"@context": self.context, "@graph_elements": graph_serial}
 
         with open(os.path.join(path, 'CATALOG.json'), 'w') as jsonfile:
             json.dump(data, jsonfile, indent=4)
 
 
 class GraphElement:
-    """ A graph element class """
-    def __init__(self, catalog, id):
+    """ An individual graph element (part of catalog) class """
+    def __init__(self, catalog, gid):
         self.content = {}
-        self.catalog = catalog # Parent catalog
+        self.catalog = catalog  # Parent catalog
         # check for ID uniqueness across catalog
-        if not any(ge['@id'] == id for ge in self.parent.graph):
-            self.id = id
-            self.content['@id'] = id
+        if not any(ge['@id'] == gid for ge in self.catalog.graph_elements):
+            self.gid = gid
+            self.content['@id'] = gid
             self.catalog.graph_element_append(self)
         else:
-            print('An element in your graph already exists with this ID')
+            print('An element in your graph_elements already exists with this ID')
 
     def add_attribute(self, key, value):
         """
@@ -139,10 +136,9 @@ class GraphElement:
         self.content[key] = links
 
 
-class FileGrouping:
+class FileList:
     """ A Grouping of Files """
-    def __init__(self, **kwargs):
-        self.description = kwargs['description']
+    def __init__(self):
         self.files = []
 
     def file_append(self, file_object):
@@ -152,11 +148,8 @@ class FileGrouping:
 
 class File:
     """ An individual file object """
-    def __init__(self, file_grouping, orig_path, name, description, creator):
-        self.file_grouping = file_grouping
+    def __init__(self, file_list, orig_path, filename):
+        self.file_list = file_list
         self.orig_path = orig_path
-        self.name = name
-        self.description = description
-        self.creator = creator
-        self.file_grouping.file_append(self)
-
+        self.filename = filename
+        self.file_list.file_append(self)
