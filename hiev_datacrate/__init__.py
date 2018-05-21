@@ -11,8 +11,9 @@ TAGFILE_CHARACTER_ENCODING = "UTF-8"
 
 class DataCrate:
     """ A DataCrate Class """
-    def __init__(self, crate_name=None):
-        self.catalog = None
+    def __init__(self, catalog, files, crate_name=None):
+        self.catalog = catalog
+        self.files = files
         self.crate_name = None
         self.crate_path = None
         self.datadir_path = None
@@ -82,9 +83,9 @@ class Catalog:
         """ Add a new context pair """
         self.context[key] = value
 
-    def graph_append(self, graph_object):
+    def graph_element_append(self, graph_element):
         """ Add a new graph object """
-        self.graph.append(graph_object)
+        self.graph.append(graph_element)
 
     def serialize(self):
         """ Serialize object to string """
@@ -103,8 +104,16 @@ class Catalog:
 
 class GraphElement:
     """ A graph element class """
-    def __init__(self):
+    def __init__(self, catalog, id):
         self.content = {}
+        self.catalog = catalog # Parent catalog
+        # check for ID uniqueness across catalog
+        if not any(ge['@id'] == id for ge in self.parent.graph):
+            self.id = id
+            self.content['@id'] = id
+            self.catalog.graph_element_append(self)
+        else:
+            print('An element in your graph already exists with this ID')
 
     def add_attribute(self, key, value):
         """
@@ -143,9 +152,11 @@ class FileGrouping:
 
 class File:
     """ An individual file object """
-    def __init__(self, orig_path, name, description, creator):
+    def __init__(self, file_grouping, orig_path, name, description, creator):
+        self.file_grouping = file_grouping
         self.orig_path = orig_path
         self.name = name
         self.description = description
         self.creator = creator
+        self.file_grouping.file_append(self)
 
