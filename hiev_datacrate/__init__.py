@@ -11,9 +11,9 @@ TAGFILE_CHARACTER_ENCODING = "UTF-8"
 
 class DataCrate:
     """ A DataCrate Class """
-    def __init__(self, catalog, filelist, crate_name=None):
-        self.catalog = catalog
-        self.filelist = filelist
+    def __init__(self, crate_name=None):
+        self.catalog = None
+        self.file_manager = None
         self.crate_name = crate_name
         self.crate_path = None
         self.datadir_path = None
@@ -30,11 +30,19 @@ class DataCrate:
             else:
                 print('This datacrate already exists')
         else:
-            self.crate_name = datetime.now().strftime('%Y%m%d%H%M%S')
+            self.crate_name = 'DC_' + datetime.now().strftime('%Y%m%d%H%M%S')
             self.crate_path = os.path.join(os.getcwd(), self.crate_name)
             self.datadir_path = os.path.join(self.crate_path, 'data')
             os.makedirs(self.crate_path)
             os.makedirs(self.datadir_path)
+
+    def set_catalog(self, catalog):
+        """ Set a catalog instance for this datacrate """
+        self.catalog = catalog
+
+    def set_file_manager(self, file_manager):
+        """ Set a file_manager instance for this datacrate """
+        self.file_manager = file_manager
 
     def validate(self):
         if self.catalog is None:
@@ -48,10 +56,10 @@ class DataCrate:
             file.write("BagIt-Version: " + self.bagit_version + "\n")
             file.write("Tag-File-Character-Encoding: " + self.tagfile_char_encoding + "\n")
 
-    def ingest_files(self):
-        """ Copy files into the data folder"""
-        for file in self.filelist.files:
-            shutil.copy(file.orig_path, os.path.join(self.crate_path, 'data'))
+    # def ingest_files(self):
+    #     """ Copy files into the data folder"""
+    #     for file in self.filelist.files:
+    #         shutil.copy(file.orig_path, os.path.join(self.crate_path, 'data'))
 
     def generate_manifest(self):
         """ Generate manifest of md5 checksums """
@@ -60,9 +68,10 @@ class DataCrate:
             for file in os.listdir(self.datadir_path):
                 manifest_file.write(md5(os.path.join(self.datadir_path, file)) + " data/" + file + "\n")
 
-    def populate(self):
+    def generate(self):
+        """ Generate a full datacrate """
         self.export_bt()
-        self.ingest_files()
+        # self.ingest_files()
         self.catalog.export(self.crate_path)
         self.generate_manifest()
 
@@ -72,10 +81,6 @@ class Catalog:
     def __init__(self):
         self.context = {}
         self.graph_elements = []
-
-    def context_append(self, key, value):
-        """ Add a new context pair """
-        self.context[key] = value
 
     def graph_element_append(self, graph_element):
         """ Add a new graph_elements object """
@@ -157,24 +162,24 @@ class GraphElement:
             self.catalog.context_append(key, schema_val)
 
 
-class FileList:
+class FileManager:
     """ A Grouping of Files """
     def __init__(self):
         self.files = []
 
-    def file_append(self, file_object):
+    def append_file(self, file):
         """ Add a new file object """
-        self.files.append(file_object)
+        self.files.append(file)
 
 
 class File:
     """ An individual file object """
-    def __init__(self, filelist, orig_path, filename):
-        self.orig_path = orig_path
+    def __init__(self, path, filename):
+        self.path = path
         self.filename = filename
-        if not isinstance(filelist, FileList):
-            raise ValueError("filelist must be a FileList object")
-        else:
-            self.filelist = filelist
-
-        self.filelist.file_append(self)
+        # if not isinstance(filelist, FileList):
+        #     raise ValueError("filelist must be a FileList object")
+        # else:
+        #     self.filelist = filelist
+        #
+        # self.filelist.file_append(self)
