@@ -104,7 +104,7 @@ def download(api_token, record, path=None):
         urllib.request.urlretrieve(download_url, record['filename'])
 
 
-def datacrate(api_token, records):
+def datacrate(api_token, records, dataset_md):
 
     # 1. First generate a new DataCrate shell
     dc = DataCrate()
@@ -121,7 +121,9 @@ def datacrate(api_token, records):
     dge.add_attribute("@type", "Dataset")
     dge.add_attribute("path", "/data", "schema:path")
     dge.add_attribute("identifier", "mydataset", "schema:identifier")
-    dge.add_link("creator", "orcid_id_xxxxx", "schema:creator")
+    dge.add_attribute("startTime", dataset_md['startTime'], "schema:startTime")
+    dge.add_attribute("endTime", dataset_md['endTime'], "schema:endTime")
+    dge.add_attribute("description", dataset_md['description'], "schema:description")
 
     # 5. Loop over the supplied records that we want to datacrate, download them to the crate, and ingest associated
     # metadata for each file into the catalog
