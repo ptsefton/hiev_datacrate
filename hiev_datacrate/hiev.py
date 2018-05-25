@@ -119,7 +119,7 @@ def datacrate(api_token, records, dataset_md):
     # 4. Create and populate a graph element for the dataset itself
     dge = GraphElement(c, "myDataset")
     dge.add_attribute("@type", "Dataset")
-    dge.add_attribute("path", "/data", "schema:path")
+    dge.add_attribute("path", "data/", "schema:path")
     dge.add_attribute("identifier", "mydataset", "schema:identifier")
     dge.add_attribute("startTime", dataset_md['startTime'], "schema:startTime")
     dge.add_attribute("endTime", dataset_md['endTime'], "schema:endTime")
